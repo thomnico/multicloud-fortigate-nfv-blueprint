@@ -1,0 +1,10 @@
+Metadata-Version: 1.0
+Name: cloudify-aws-plugin-extension
+Version: 0.1.0.dev0
+Summary: Extension to Cloudify plugin for AWS infrastructure.
+Home-page: UNKNOWN
+Author: earthmant
+Author-email: trammell@gigaspaces.com
+License: LICENSE
+Description: UNKNOWN
+Platform: UNKNOWN

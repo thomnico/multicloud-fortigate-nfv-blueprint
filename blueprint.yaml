@@ -1,0 +1,326 @@
+tosca_definitions_version: cloudify_dsl_1_3
+
+imports:
+  # Cloudify
+  - http://www.getcloudify.org/spec/cloudify/3.4/types.yaml
+
+  # Openstack
+  - https://raw.githubusercontent.com/cloudify-examples/aws-azure-openstack-blueprint/master/openstack/imports.yaml
+  - https://raw.githubusercontent.com/cloudify-examples/aws-azure-openstack-blueprint/master/openstack/network/external-network.yaml
+  - https://raw.githubusercontent.com/cloudify-examples/aws-azure-openstack-blueprint/master/openstack/network/open-group.yaml
+  - https://raw.githubusercontent.com/cloudify-examples/aws-azure-openstack-blueprint/master/openstack/network/public-network/router.yaml
+  - https://raw.githubusercontent.com/cloudify-examples/aws-azure-openstack-blueprint/master/openstack/network/public-network/floating-ip.yaml
+  - https://raw.githubusercontent.com/cloudify-examples/aws-azure-openstack-blueprint/master/openstack/network/public-network/network.yaml
+  - https://raw.githubusercontent.com/cloudify-examples/aws-azure-openstack-blueprint/master/openstack/network/public-network/subnet.yaml
+  - https://raw.githubusercontent.com/cloudify-examples/aws-azure-openstack-blueprint/master/openstack/network/public-network/port.yaml
+  - https://raw.githubusercontent.com/cloudify-examples/aws-azure-openstack-blueprint/master/openstack/network/private-network/network.yaml
+  - https://raw.githubusercontent.com/cloudify-examples/aws-azure-openstack-blueprint/master/openstack/network/private-network/subnet.yaml
+  - https://raw.githubusercontent.com/cloudify-examples/aws-azure-openstack-blueprint/master/openstack/network/private-network/port.yaml
+  - https://raw.githubusercontent.com/cloudify-examples/aws-azure-openstack-blueprint/master/openstack/compute/key.yaml
+
+  # AWS
+  - https://raw.githubusercontent.com/cloudify-examples/aws-azure-openstack-blueprint/master/aws/imports.yaml
+  - https://raw.githubusercontent.com/cloudify-examples/aws-azure-openstack-blueprint/master/aws/network/vpc.yaml
+  - https://raw.githubusercontent.com/cloudify-examples/aws-azure-openstack-blueprint/master/aws/network/dhcp-options-set.yaml
+  - https://raw.githubusercontent.com/cloudify-examples/aws-azure-openstack-blueprint/master/aws/network/public-subnet/subnet.yaml
+  - https://raw.githubusercontent.com/cloudify-examples/aws-azure-openstack-blueprint/master/aws/network/public-subnet/internet-gateway.yaml
+  - https://raw.githubusercontent.com/cloudify-examples/aws-azure-openstack-blueprint/master/aws/network/private-subnet/subnet.yaml
+  - https://raw.githubusercontent.com/cloudify-examples/aws-azure-openstack-blueprint/master/aws/network/public-subnet/nat-instance-security-group.yaml
+  - https://raw.githubusercontent.com/cloudify-examples/aws-azure-openstack-blueprint/master/aws/network/public-subnet/nat-instance-elastic-ip.yaml
+  - https://raw.githubusercontent.com/cloudify-examples/aws-azure-openstack-blueprint/master/aws/network/public-subnet/nat-instance.yaml
+  - https://raw.githubusercontent.com/cloudify-examples/aws-azure-openstack-blueprint/master/aws/compute/elastic-ip.yaml
+  - https://raw.githubusercontent.com/cloudify-examples/aws-azure-openstack-blueprint/master/aws/compute/key.yaml
+  - https://raw.githubusercontent.com/cloudify-examples/aws-azure-openstack-blueprint/master/aws/compute/security-group.yaml
+
+  # Fortigate
+  - plugins/cloudify-fortinet-plugin/plugin.yaml
+  - fortigate/blueprint.yaml
+
+plugins:
+
+  aws_ext:
+    executor: central_deployment_agent
+    source: cloudify-aws-plugin-extension
+    install_arguments: '--process-dependency-links'
+
+  os_ext:
+    executor: central_deployment_agent
+    source: cloudify-openstack-plugin-extension
+    install_arguments: '--process-dependency-links'
+
+inputs:
+
+  use_existing_example_aws_public_route_table:
+    description: >
+      If you have an existing public route table that you want to use this should be true.
+    default: false
+
+  example_public_route_table_id:
+    description: >
+      If you changed use_existing_example_aws_public_route_table to true, then this is the route table ID.
+    default: ''
+
+  use_existing_example_aws_private_route_table:
+    description: >
+      If you have an existing private route table that you want to use this should be true.
+    default: false
+
+  example_private_route_table_id:
+    description: >
+      If you changed use_existing_example_aws_private_route_table to true, then this is the route table ID.
+    default: ''
+
+  use_existing_customer_gateway:
+    description: >
+      If you have a vpn gateway that you want to use this should be true.
+    default: false
+
+  customer_gateway_id:
+    description: >
+      If you changed the input use_existing_customer_gateway, then you should put the customer gateway ID here.
+    default: ''
+
+  use_existing_vpn_gateway:
+    description: >
+      If you have a vpn gateway that you want to use this should be true.
+    default: false
+
+  existing_vpn_gateway_id:
+    description: >
+      If you changed the input use_existing_vpn_gateway, then you should put the vpn gateway ID here.
+    default: ''
+
+  use_existing_example_openstack_virtual_machine:
+    type: boolean
+    default: false
+
+  example_openstack_virtual_machine:
+    type: string
+    default: ''
+
+  example_openstack_virtual_machine_image_id:
+    type: string
+
+  example_openstack_virtual_machine_flavor_id:
+    type: string
+
+  public_route_table_routes:
+    default:
+      - destination_cidr_block: { concat: [ { get_input: example_openstack_private_network_subnet_cidr }, '/', { get_input: example_openstack_private_network_subnet_cidr_suffix } ] }
+        gateway_id: { get_attribute: [ example_aws_vpn_gateway, aws_resource_id ] }
+      - destination_cidr_block: { get_input: example_openstack_network_subnet_cidr }
+        gateway_id: { get_attribute: [ example_aws_vpn_gateway, aws_resource_id ] }
+
+  private_route_table_routes:
+    default:
+      - destination_cidr_block: 0.0.0.0/0
+        instance_id: { get_attribute: [ example_aws_nat_instance, aws_resource_id ] }
+      - destination_cidr_block: { concat: [ { get_input: example_openstack_private_network_subnet_cidr }, '/', { get_input: example_openstack_private_network_subnet_cidr_suffix } ] }
+        gateway_id: { get_attribute: [ example_aws_vpn_gateway, aws_resource_id ] }
+      - destination_cidr_block: { get_input: example_openstack_network_subnet_cidr }
+        gateway_id: { get_attribute: [ example_aws_vpn_gateway, aws_resource_id ] }
+
+  use_existing_example_aws_virtual_machine:
+    type: boolean
+    default: false
+
+  example_aws_virtual_machine:
+    type: string
+    default: ''
+
+  example_aws_virtual_machine_image_id:
+    default: ami-165bdf01 # Cloudify Manager AMI
+
+  example_aws_virtual_machine_instance_type:
+    default: m3.large
+
+node_types:
+
+  aws_node_type:
+    derived_from: cloudify.nodes.Root
+    properties:
+      aws_config:
+        default: {}
+
+node_templates:
+
+  # Modified
+  example_aws_public_route_table:
+    type: cloudify.aws.nodes.RouteTable
+    properties:
+      aws_config: { get_input: aws_configuration }
+      use_external_resource: { get_input: use_existing_example_aws_public_route_table }
+      resource_id: { get_input: example_public_route_table_id }
+    interfaces:
+      cloudify.interfaces.lifecycle:
+        create:
+          implementation: aws.cloudify_aws.vpc.routetable.create_route_table
+          inputs:
+            routes: { get_input: public_route_table_routes }
+    relationships:
+      - type: cloudify.aws.relationships.routetable_contained_in_vpc
+        target: example_aws_vpc
+      - type: cloudify.aws.relationships.routetable_associated_with_subnet
+        target: example_aws_public_subnet
+      - type: cloudify.aws.relationships.route_table_to_gateway
+        target: example_aws_internet_gateway
+
+      - type: cloudify.relationships.depends_on
+        target: example_aws_vpn_gateway
+      - type: cloudify.relationships.depends_on
+        target: example_openstack_network_subnet
+      - type: cloudify.relationships.depends_on
+        target: example_openstack_private_network_subnet
+
+  # Modified
+  example_aws_private_route_table:
+    type: cloudify.aws.nodes.RouteTable
+    properties:
+      aws_config: { get_input: aws_configuration }
+      use_external_resource: { get_input: use_existing_example_aws_private_route_table }
+      resource_id: { get_input: example_private_route_table_id }
+    interfaces:
+      cloudify.interfaces.lifecycle:
+        create:
+          implementation: aws.cloudify_aws.vpc.routetable.create_route_table
+          inputs:
+            routes: { get_input: private_route_table_routes }
+        configure:
+          implementation: aws_ext.cloudify_aws_vpc_extension.route_table_ext.set_as_main_route_table
+          inputs:
+            args: {}
+    relationships:
+      - type: cloudify.aws.relationships.routetable_contained_in_vpc
+        target: example_aws_vpc
+      - type: cloudify.aws.relationships.routetable_associated_with_subnet
+        target: example_aws_private_subnet
+      - type: cloudify.relationships.connected_to
+        target: example_aws_nat_instance
+
+      - type: cloudify.relationships.depends_on
+        target: example_aws_vpn_gateway
+      - type: cloudify.relationships.depends_on
+        target: example_openstack_network_subnet
+      - type: cloudify.relationships.depends_on
+        target: example_openstack_private_network_subnet
+
+  example_aws_vpn_gateway:
+    type: cloudify.aws.nodes.VPNGateway
+    properties:
+      aws_config: { get_input: aws_configuration }
+      use_external_resource: { get_input: use_existing_vpn_gateway }
+      resource_id: { get_input: existing_vpn_gateway_id }
+      availability_zone: { get_input: example_aws_public_subnet_availability_zone }
+    relationships:
+      - type: cloudify.aws.relationships.gateway_connected_to_vpc
+        target: example_aws_vpc
+
+  example_aws_customer_gateway:
+    type: cloudify.aws.nodes.CustomerGateway
+    properties:
+      aws_config: { get_input: aws_configuration }
+      use_external_resource: { get_input: use_existing_customer_gateway }
+      resource_id: { get_input: customer_gateway_id }
+      ip_address: 127.0.0.1
+      bgp_asn: 65534
+    interfaces:
+      cloudify.interfaces.lifecycle:
+        create:
+          implementation: aws.cloudify_aws.vpc.gateway.create_customer_gateway
+          inputs:
+            args:
+              ip_address: { get_attribute: [ example_openstack_floating_ip, floating_ip_address ] }
+    relationships:
+      - type: cloudify.relationships.depends_on
+        target: example_openstack_floating_ip
+      - type: cloudify.aws.relationships.customer_gateway_connected_to_vpn_gateway
+        target: example_aws_vpn_gateway
+        target_interfaces:
+          cloudify.interfaces.relationship_lifecycle:
+            establish:
+              implementation: aws.cloudify_aws.vpc.gateway.create_vpn_connection
+              inputs:
+                routes:
+                  - destination_cidr_block: { concat: [ { get_input: example_openstack_private_network_subnet_cidr }, '/', { get_input: example_openstack_private_network_subnet_cidr_suffix } ] }
+                  - destination_cidr_block: { get_input: example_openstack_network_subnet_cidr }
+            unlink:
+              implementation: aws.cloudify_aws.vpc.gateway.delete_vpn_connection
+
+  # Modified
+  example_openstack_virtual_machine:
+    type: cloudify.openstack.nodes.Server
+    properties:
+      openstack_config: { get_input: openstack_configuration }
+      use_external_resource: { get_input: use_existing_example_openstack_virtual_machine }
+      resource_id: { get_input: example_openstack_virtual_machine }
+      install_agent: false
+      server:
+        image: { get_input: example_openstack_virtual_machine_image_id }
+        flavor: { get_input: example_openstack_virtual_machine_flavor_id }
+      management_network_name: { get_property: [ example_openstack_network, resource_id ] }
+    relationships:
+      - target: example_openstack_key
+        type: cloudify.openstack.server_connected_to_keypair
+      - target: example_openstack_network_port
+        type: cloudify.openstack.server_connected_to_port
+      - target: example_openstack_private_network_port
+        type: cloudify.openstack.server_connected_to_port
+#      - type: cloudify.relationships.depends_on
+#        target: example_openstack_network_subnet
+#        source_interfaces:
+#          cloudify.interfaces.relationship_lifecycle:
+#            establish:
+#              implementation: os_ext.neutron_plugin_extension.subnet.update
+#              inputs:
+#                args:
+#                  host_routes:
+#                    - destination: { get_input: example_aws_public_subnet_cidr }
+#                      nexthop: { get_attribute: [ SOURCE, networks, { get_input: example_openstack_network_name }, 0 ] }
+#                    - destination: { get_input: example_aws_private_subnet_cidr }
+#                      nexthop: { get_attribute: [ SOURCE, networks, { get_input: example_openstack_network_name }, 0 ] }
+#                    - destination: { concat: [ { get_input: example_openstack_private_network_subnet_cidr }, '/', { get_input: example_openstack_private_network_subnet_cidr_suffix } ] }
+#                      nexthop: { get_attribute: [ SOURCE, networks, { get_input: example_openstack_network_name }, 0 ] }
+
+  example_aws_virtual_machine:
+    type: cloudify.aws.nodes.Instance
+    properties:
+      aws_config: { get_input: aws_configuration }
+      use_external_resource: { get_input: use_existing_example_aws_virtual_machine }
+      resource_id: { get_input: example_aws_virtual_machine }
+      agent_config:
+        install_method: none
+      image_id: { get_input: example_aws_virtual_machine_image_id }
+      instance_type: { get_input: example_aws_virtual_machine_instance_type }
+      parameters:
+        placement: { get_property: [ example_aws_public_subnet, availability_zone ] }
+    relationships:
+      - type: cloudify.aws.relationships.instance_contained_in_subnet
+        target: example_aws_public_subnet
+      - type: cloudify.aws.relationships.instance_connected_to_security_group
+        target: example_aws_security_group
+      - type: cloudify.aws.relationships.instance_connected_to_keypair
+        target: example_aws_key
+      - type: cloudify.aws.relationships.instance_connected_to_elastic_ip
+        target: example_aws_elastic_ip
+    interfaces:
+      cloudify.interfaces.lifecycle:
+        configure:
+          implementation: aws.cloudify_aws.ec2.instance.modify_attributes
+          inputs:
+            new_attributes:
+              sourceDestCheck: false
+
+
+  example_aws_vpn_configuration:
+    type: aws_node_type
+    properties:
+      aws_config: { get_input: aws_configuration }
+    relationships:
+      - type: cloudify.relationships.depends_on
+        target: example_openstack_virtual_machine
+      - type: cloudify.relationships.depends_on
+        target: example_aws_customer_gateway
+        source_interfaces:
+          cloudify.interfaces.relationship_lifecycle:
+            establish:
+              implementation: aws_ext.cloudify_aws_vpc_extension.vpc_connection.establish

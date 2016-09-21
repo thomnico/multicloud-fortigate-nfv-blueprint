@@ -1,0 +1,164 @@
+###########################################################
+# Cloudify Fortinet built in types and plugins definitions.
+###########################################################
+
+plugins:
+  fortinet:
+    executor: central_deployment_agent
+    source: cloudify-fortinet-plugin
+#    package_name: cloudify-fortinet-plugin
+#    package_version: '1.0'
+
+
+node_types:
+
+  cloudify.Fortinet.FortiGate.Execute:
+    derived_from: cloudify.nodes.ApplicationModule
+    interfaces:
+      cloudify.interfaces.lifecycle:
+        create:
+          implementation: fortinet.fortigate.generic.execute_commands
+          inputs:
+            commands:
+              required: true
+              default: []
+              description: >
+                A list of commands.
+            ssh_config:
+              required: true
+              description: >
+                SSH configuration data (key-value pairs) to be passed
+                to the underlying Fabric connection settings (fabric.api.env)
+
+  cloudify.Fortinet.FortiGate.Status:
+    derived_from: cloudify.nodes.ApplicationModule
+    interfaces:
+      cloudify.interfaces.lifecycle:
+        create:
+          implementation: fortinet.fortigate.generic.command_verify
+          inputs:
+            command:
+              required: true
+              default: ''
+              description: >
+                A command such as "get system status"
+            verify:
+              required: true
+              default: ''
+              description: >
+                A string that you expect to be in the output.
+            ssh_config:
+              required: true
+              description: >
+                SSH configuration data (key-value pairs) to be passed
+                to the underlying Fabric connection settings (fabric.api.env)
+
+  # This is a generic type used for development / testing of
+  # new node types. The key difference here is the "name" input.
+  # This field should be set to the configuration name such as
+  # "firewall vip". 
+  # Exposed runtime properties:
+  #   config_name
+  #   config_id
+  #   config (as returned by FortiGate; dict)
+  #   ssh_config
+  cloudify.Fortinet.FortiGate.Config:
+    derived_from: cloudify.nodes.ApplicationModule
+    interfaces:
+      cloudify.interfaces.lifecycle:
+        create:
+          implementation: fortinet.fortigate.config.create
+          inputs:
+            config_name:
+              required: true
+              description: >
+                Sets the configuration name / type to be updated.
+                Ex. "firewall vip" or "system interface".
+            config_id:
+              required: false
+              default: 0
+              description: >
+                Sets a specific config ID to use when making updates. If this
+                is not set, the plugin will attempt to find the next free
+                config ID and use that. The config ID that is used will be
+                made available as the runtime property "config_id". IDs, if
+                numeric, should start at 1 and not 0. 
+            config:
+              required: true
+              description: >
+                Arrays of key-value pairs.  Each pair will
+                execute "set <key> <value>" within the policy
+                edit context. Arrays are used to preserve ordering.
+            ssh_config:
+              required: true
+              description: >
+                SSH configuration data (key-value pairs) to be passed
+                to the underlying Fabric connection settings (fabric.api.env)
+        delete: fortinet.fortigate.config.delete
+  
+  # Exposed runtime properties:
+  #   config_id
+  #   config (as returned by FortiGate; dict)
+  #   ssh_config
+  cloudify.Fortinet.FortiGate.Firewall.Policy:
+    derived_from: cloudify.nodes.ApplicationModule
+    interfaces:
+      cloudify.interfaces.lifecycle:
+        create:
+          implementation: fortinet.fortigate.firewall.policy.create
+          inputs:
+            config_id:
+              required: false
+              default: 0
+              description: >
+                Sets a specific config ID to use when making updates. If this
+                is not set, the plugin will attempt to find the next free
+                config ID and use that. The config ID that is used will be
+                made available as the runtime property "config_id". IDs, if
+                numeric, should start at 1 and not 0. 
+            config:
+              required: true
+              description: >
+                Arrays of key-value pairs.  Each pair will
+                execute "set <key> <value>" within the policy
+                edit context. Arrays are used to preserve ordering.
+            ssh_config:
+              required: true
+              description: >
+                SSH configuration data (key-value pairs) to be passed
+                to the underlying Fabric connection settings (fabric.api.env)
+        delete: fortinet.fortigate.firewall.policy.delete
+        
+  # Exposed runtime properties:
+  #   config_id
+  #   config (as returned by FortiGate; dict)
+  #   ssh_config
+  cloudify.Fortinet.FortiGate.Firewall.VIP:
+    derived_from: cloudify.nodes.ApplicationModule
+    interfaces:
+      cloudify.interfaces.lifecycle:
+        create:
+          implementation: fortinet.fortigate.firewall.vip.create
+          inputs:
+            config_id:
+              required: false
+              default: 0
+              description: >
+                Sets a specific config ID to use when making updates. If this
+                is not set, the plugin will attempt to find the next free
+                config ID and use that. The config ID that is used will be
+                made available as the runtime property "config_id". IDs, if
+                numeric, should start at 1 and not 0. 
+            config:
+              required: true
+              description: >
+                Arrays of key-value pairs.  Each pair will
+                execute "set <key> <value>" within the policy
+                edit context. Arrays are used to preserve ordering.
+            ssh_config:
+              required: true
+              description: >
+                SSH configuration data (key-value pairs) to be passed
+                to the underlying Fabric connection settings (fabric.api.env)
+        delete: fortinet.fortigate.firewall.vip.delete
+  

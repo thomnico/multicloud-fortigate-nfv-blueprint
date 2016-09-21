@@ -1,0 +1,45 @@
+tosca_definitions_version: cloudify_dsl_1_3
+
+node_templates:
+
+  fortigate_global_zone_port2:
+    type: cloudify.Fortinet.FortiGate.Config
+    interfaces:
+      cloudify.interfaces.lifecycle:
+        create:
+          inputs:
+            config_name: system zone
+            config_id: internal2
+            config:
+              - intrazone: allow
+              - interface: port2
+            ssh_config: { get_input: fortigate_ssh_config }
+    relationships:
+      - type: cloudify.relationships.contained_in
+        target: example_openstack_virtual_machine
+      - type: cloudify.relationships.depends_on
+        target: system_status
+
+  fortigate_global_interface_port2:
+    type: cloudify.Fortinet.FortiGate.Config
+    interfaces:
+      cloudify.interfaces.lifecycle:
+        create:
+          inputs:
+            config_name: system interface
+            config_id: port2
+            config:
+              - ip:
+                - { concat: [ '"', { get_attribute: [ example_openstack_private_network_port, fixed_ip_address ] }, '"' ] }
+                - { concat: [ '"', { get_input: example_openstack_private_network_subnet_cidr_netmask }, '"' ] }
+              - alias: interface2
+              - allowaccess:
+                - ping
+            ssh_config:  { get_input: fortigate_ssh_config }
+    relationships:
+      - type: cloudify.relationships.contained_in
+        target: example_openstack_virtual_machine
+      - type: cloudify.relationships.depends_on
+        target: external_internal2
+      - type: cloudify.relationships.depends_on
+        target: internal2_external

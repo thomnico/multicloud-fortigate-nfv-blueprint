@@ -1,0 +1,28 @@
+tosca_definitions_version: cloudify_dsl_1_3
+
+imports:
+  - interfaces.yaml
+  - routes.yaml
+  - firewall.yaml
+
+node_templates:
+
+  bring_up_tunnel2:
+    type: cloudify.Fortinet.FortiGate.Execute
+    interfaces:
+      cloudify.interfaces.lifecycle:
+        create:
+          implementation: fortinet.fortigate.generic.execute_commands_filter_for_result
+          inputs:
+            commands:
+              - { concat: [ 'execute vpn ipsec tunnel up ', { get_attribute: [ example_aws_vpn_configuration, ipsec_tunnel, '1', id ] }, ' ', { get_attribute: [ example_aws_vpn_configuration, ipsec_tunnel, '1', id ] } ] }
+            filter_command: 'get ipsec tunnel list'
+            matcher:
+              - { get_attribute: [ example_aws_vpn_configuration, ipsec_tunnel, '1', id ] }
+              - 'up'
+            ssh_config: { get_input: fortigate_ssh_config }
+    relationships:
+      - type: cloudify.relationships.contained_in
+        target: example_openstack_virtual_machine
+      - type: cloudify.relationships.depends_on
+        target: tunnel2_firewall_policy_10

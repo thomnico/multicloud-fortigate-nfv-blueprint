@@ -1,0 +1,48 @@
+tosca_definitions_version: cloudify_dsl_1_3
+
+node_templates:
+
+  fortigate_global_external_interface:
+    type: cloudify.Fortinet.FortiGate.Config
+    interfaces:
+      cloudify.interfaces.lifecycle:
+        create:
+          inputs:
+            config_name: system zone
+            config_id: external
+            config:
+              - intrazone: allow
+              - interface: port1
+            ssh_config:  { get_input: fortigate_ssh_config }
+    relationships:
+      - type: cloudify.relationships.contained_in
+        target: example_openstack_virtual_machine
+      - type: cloudify.relationships.depends_on
+        target: example_aws_vpn_configuration
+      - type: cloudify.relationships.depends_on
+        target: system_status
+
+  fortigate_global_interface_port1:
+    type: cloudify.Fortinet.FortiGate.Config
+    interfaces:
+      cloudify.interfaces.lifecycle:
+        create:
+          inputs:
+            config_name: system interface
+            config_id: port1
+            config:
+              - mode: dhcp
+              - alias: interface1
+              - allowaccess:
+                - ping
+                - https
+                - ssh
+                - snmp
+                - http
+                - fgfm
+            ssh_config:  { get_input: fortigate_ssh_config }
+    relationships:
+      - type: cloudify.relationships.contained_in
+        target: example_openstack_virtual_machine
+      - type: cloudify.relationships.depends_on
+        target: fortigate_global_external_interface

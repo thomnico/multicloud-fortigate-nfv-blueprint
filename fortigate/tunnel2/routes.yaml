@@ -1,0 +1,21 @@
+tosca_definitions_version: cloudify_dsl_1_3
+
+node_templates:
+
+  tunnel2_static_route:
+    type: cloudify.Fortinet.FortiGate.Config
+    interfaces:
+      cloudify.interfaces.lifecycle:
+        create:
+          inputs:
+            config_name: router static
+            config_id: 2
+            config:
+              - device: { get_attribute: [ example_aws_vpn_configuration, ipsec_tunnel, '1', id ] }
+              - dst: { get_input: example_aws_vpc_cidr }
+            ssh_config:  { get_input: fortigate_ssh_config }
+    relationships:
+      - type: cloudify.relationships.contained_in
+        target: example_openstack_virtual_machine
+      - type: cloudify.relationships.depends_on
+        target: ipsec_tunnel2

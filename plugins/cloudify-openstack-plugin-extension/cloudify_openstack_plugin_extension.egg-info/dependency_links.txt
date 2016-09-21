@@ -1,0 +1,1 @@
+https://github.com/cloudify-cosmo/cloudify-openstack-plugin/tarball/1.4#egg=cloudify-openstack-plugin-1.4

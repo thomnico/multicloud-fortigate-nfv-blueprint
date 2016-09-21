@@ -1,0 +1,1 @@
+cloudify-openstack-plugin>=1.4

@@ -1,0 +1,1 @@
+https://github.com/cloudify-cosmo/cloudify-aws-plugin/tarball/1.4.2#egg=cloudify-aws-plugin-1.4.2

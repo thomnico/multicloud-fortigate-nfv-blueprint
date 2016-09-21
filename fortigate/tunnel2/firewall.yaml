@@ -1,0 +1,191 @@
+tosca_definitions_version: cloudify_dsl_1_3
+
+node_templates:
+
+  tunnel2_firewall_address_vpn_local:
+    type: cloudify.Fortinet.FortiGate.Config
+    interfaces:
+      cloudify.interfaces.lifecycle:
+        create:
+          inputs:
+            config_name: firewall address
+            config_id: { concat: [ { get_attribute: [ example_aws_vpn_configuration, ipsec_tunnel, '1', id ] }, '_local_subnet_1' ] }
+            config:
+              - comment: "stam"
+            ssh_config:  { get_input: fortigate_ssh_config }
+    relationships:
+      - type: cloudify.relationships.contained_in
+        target: example_openstack_virtual_machine
+      - type: cloudify.relationships.depends_on
+        target: tunnel2_static_route
+
+  tunnel2_firewall_address_vpn_remote:
+    type: cloudify.Fortinet.FortiGate.Config
+    interfaces:
+      cloudify.interfaces.lifecycle:
+        create:
+          inputs:
+            config_name: firewall address
+            config_id: { concat: [ { get_attribute: [ example_aws_vpn_configuration, ipsec_tunnel, '1', id ] }, '_remote_subnet_1' ] }
+            config:
+              - comment: "stam"
+            ssh_config:  { get_input: fortigate_ssh_config }
+    relationships:
+      - type: cloudify.relationships.contained_in
+        target: example_openstack_virtual_machine
+      - type: cloudify.relationships.depends_on
+        target: tunnel2_firewall_address_vpn_local
+
+  tunnel2_firewall_address_vpn_group_local:
+    type: cloudify.Fortinet.FortiGate.Config
+    interfaces:
+      cloudify.interfaces.lifecycle:
+        create:
+          inputs:
+            config_name: firewall addrgrp
+            config_id: { concat: [ { get_attribute: [ example_aws_vpn_configuration, ipsec_tunnel, '1', id ] }, '_local' ] }
+            config:
+              - member: { concat: [ { get_attribute: [ example_aws_vpn_configuration, ipsec_tunnel, '1', id ] }, '_local_subnet_1' ] }
+            ssh_config:  { get_input: fortigate_ssh_config }
+    relationships:
+      - type: cloudify.relationships.contained_in
+        target: example_openstack_virtual_machine
+      - type: cloudify.relationships.depends_on
+        target: tunnel2_firewall_address_vpn_local
+
+  tunnel2_firewall_address_vpn_group_remote:
+    type: cloudify.Fortinet.FortiGate.Config
+    interfaces:
+      cloudify.interfaces.lifecycle:
+        create:
+          inputs:
+            config_name: firewall addrgrp
+            config_id: { concat: [ { get_attribute: [ example_aws_vpn_configuration, ipsec_tunnel, '1', id ] }, '_remote' ] }
+            config:
+              - member: { concat: [ { get_attribute: [ example_aws_vpn_configuration, ipsec_tunnel, '1', id ] }, '_remote_subnet_1' ] }
+            ssh_config:  { get_input: fortigate_ssh_config }
+    relationships:
+      - type: cloudify.relationships.contained_in
+        target: example_openstack_virtual_machine
+      - type: cloudify.relationships.depends_on
+        target: tunnel2_firewall_address_vpn_remote
+
+  tunnel2_firewall_policy_7:
+    type: cloudify.Fortinet.FortiGate.Config
+    interfaces:
+      cloudify.interfaces.lifecycle:
+        create:
+          inputs:
+            config_name: firewall policy
+            config_id: 7
+            config:
+              - name: { concat: [ 'internal2_', { get_attribute: [ example_aws_vpn_configuration, ipsec_tunnel, '1', id ] } ] }
+              - srcintf: internal2
+              - dstintf: { get_attribute: [ example_aws_vpn_configuration, ipsec_tunnel, '1', id ] }
+              - srcaddr: { concat: [ { get_attribute: [ example_aws_vpn_configuration, ipsec_tunnel, '1', id ] }, '_local' ] }
+              - dstaddr: { concat: [ { get_attribute: [ example_aws_vpn_configuration, ipsec_tunnel, '1', id ] }, '_remote' ] }
+              - action: accept
+              - schedule: always
+              - service: ALL
+              - logtraffic: all
+#              - nat: enable
+            ssh_config:  { get_input: fortigate_ssh_config }
+    relationships:
+      - type: cloudify.relationships.contained_in
+        target: example_openstack_virtual_machine
+      - type: cloudify.relationships.depends_on
+        target: tunnel2_firewall_address_vpn_group_local
+      - type: cloudify.relationships.depends_on
+        target: tunnel2_firewall_address_vpn_group_remote
+      - type: cloudify.relationships.depends_on
+        target: ipsec_tunnel2
+
+  tunnel2_firewall_policy_8:
+    type: cloudify.Fortinet.FortiGate.Config
+    interfaces:
+      cloudify.interfaces.lifecycle:
+        create:
+          inputs:
+            config_name: firewall policy
+            config_id: 8
+            config:
+              - name: { concat: [ { get_attribute: [ example_aws_vpn_configuration, ipsec_tunnel, '1', id ] }, '_internal2' ] }
+              - srcintf: { get_attribute: [ example_aws_vpn_configuration, ipsec_tunnel, '1', id ] }
+              - dstintf: internal2
+              - srcaddr: { concat: [ { get_attribute: [ example_aws_vpn_configuration, ipsec_tunnel, '1', id ] }, '_remote' ] }
+              - dstaddr: { concat: [ { get_attribute: [ example_aws_vpn_configuration, ipsec_tunnel, '1', id ] }, '_local' ] }
+              - action: accept
+              - schedule: always
+              - service: ALL
+              - logtraffic: all
+#              - nat: enable
+            ssh_config:  { get_input: fortigate_ssh_config }
+    relationships:
+      - type: cloudify.relationships.contained_in
+        target: example_openstack_virtual_machine
+      - type: cloudify.relationships.depends_on
+        target: tunnel2_firewall_address_vpn_group_local
+      - type: cloudify.relationships.depends_on
+        target: tunnel2_firewall_address_vpn_group_remote
+      - type: cloudify.relationships.depends_on
+        target: ipsec_tunnel2
+
+  tunnel2_firewall_policy_9:
+    type: cloudify.Fortinet.FortiGate.Config
+    interfaces:
+      cloudify.interfaces.lifecycle:
+        create:
+          inputs:
+            config_name: firewall policy
+            config_id: 9
+            config:
+              - name: { concat: [ 'external_', { get_attribute: [ example_aws_vpn_configuration, ipsec_tunnel, '1', id ] } ] }
+              - srcintf: external
+              - dstintf: { get_attribute: [ example_aws_vpn_configuration, ipsec_tunnel, '1', id ] }
+              - srcaddr: { concat: [ { get_attribute: [ example_aws_vpn_configuration, ipsec_tunnel, '1', id ] }, '_local' ] }
+              - dstaddr: { concat: [ { get_attribute: [ example_aws_vpn_configuration, ipsec_tunnel, '1', id ] }, '_remote' ] }
+              - action: accept
+              - schedule: always
+              - service: ALL
+              - logtraffic: all
+#              - nat: enable
+            ssh_config:  { get_input: fortigate_ssh_config }
+    relationships:
+      - type: cloudify.relationships.contained_in
+        target: example_openstack_virtual_machine
+      - type: cloudify.relationships.depends_on
+        target: tunnel2_firewall_address_vpn_group_local
+      - type: cloudify.relationships.depends_on
+        target: tunnel2_firewall_address_vpn_group_remote
+      - type: cloudify.relationships.depends_on
+        target: ipsec_tunnel2
+
+  tunnel2_firewall_policy_10:
+    type: cloudify.Fortinet.FortiGate.Config
+    interfaces:
+      cloudify.interfaces.lifecycle:
+        create:
+          inputs:
+            config_name: firewall policy
+            config_id: 10
+            config:
+              - name: { concat: [ { get_attribute: [ example_aws_vpn_configuration, ipsec_tunnel, '1', id ] }, '_external' ] }
+              - srcintf: { get_attribute: [ example_aws_vpn_configuration, ipsec_tunnel, '1', id ] }
+              - dstintf: external
+              - srcaddr: { concat: [ { get_attribute: [ example_aws_vpn_configuration, ipsec_tunnel, '1', id ] }, '_remote' ] }
+              - dstaddr: { concat: [ { get_attribute: [ example_aws_vpn_configuration, ipsec_tunnel, '1', id ] }, '_local' ] }
+              - action: accept
+              - schedule: always
+              - service: ALL
+              - logtraffic: all
+#              - nat: enable
+            ssh_config:  { get_input: fortigate_ssh_config }
+    relationships:
+      - type: cloudify.relationships.contained_in
+        target: example_openstack_virtual_machine
+      - type: cloudify.relationships.depends_on
+        target: tunnel2_firewall_address_vpn_group_local
+      - type: cloudify.relationships.depends_on
+        target: tunnel2_firewall_address_vpn_group_remote
+      - type: cloudify.relationships.depends_on
+        target: ipsec_tunnel2

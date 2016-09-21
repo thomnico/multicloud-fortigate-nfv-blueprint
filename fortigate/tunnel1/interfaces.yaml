@@ -1,0 +1,69 @@
+tosca_definitions_version: cloudify_dsl_1_3
+
+node_templates:
+
+  tunnel1_phase_1_interface:
+    type: cloudify.Fortinet.FortiGate.Config
+    interfaces:
+      cloudify.interfaces.lifecycle:
+        create:
+          inputs:
+            config_name: vpn ipsec phase1-interface
+            config_id: { get_attribute: [ example_aws_vpn_configuration, ipsec_tunnel, '0', id ] }
+            config:
+              - interface: port1
+              - keylife: { get_attribute: [ example_aws_vpn_configuration, ipsec_tunnel, '0', keylife ] }
+              - proposal: { get_attribute: [ example_aws_vpn_configuration, ipsec_tunnel, '0', proposal ] }
+              - dhgrp: { get_attribute: [ example_aws_vpn_configuration, ipsec_tunnel, '0', dhgrp ] }
+              - remote-gw: { get_attribute: [ example_aws_vpn_configuration, ipsec_tunnel, '0', remote-gw ] }
+              - psksecret: { get_attribute: [ example_aws_vpn_configuration, ipsec_tunnel, '0', psksecret ] }
+            ssh_config:  { get_input: fortigate_ssh_config }
+    relationships:
+      - type: cloudify.relationships.contained_in
+        target: example_openstack_virtual_machine
+      - type: cloudify.relationships.depends_on
+        target: fortigate_global_interface_port2
+
+  tunnel1_phase_2_interface:
+    type: cloudify.Fortinet.FortiGate.Config
+    interfaces:
+      cloudify.interfaces.lifecycle:
+        create:
+          inputs:
+            config_name: vpn ipsec phase2-interface
+            config_id: { get_attribute: [ example_aws_vpn_configuration, ipsec_tunnel, '0', id ] }
+            config:
+              - phase1name: { get_attribute: [ example_aws_vpn_configuration, ipsec_tunnel, '0', id ] }
+              - proposal: { get_attribute: [ example_aws_vpn_configuration, ipsec_tunnel, '0', proposal ] }
+              - dhgrp: { get_attribute: [ example_aws_vpn_configuration, ipsec_tunnel, '0', dhgrp ] }
+              - keylifeseconds: { get_attribute: [ example_aws_vpn_configuration, ipsec_tunnel, '0', keylifeseconds ] }
+            ssh_config:  { get_input: fortigate_ssh_config }
+    relationships:
+      - type: cloudify.relationships.contained_in
+        target: example_openstack_virtual_machine
+      - type: cloudify.relationships.depends_on
+        target: tunnel1_phase_1_interface
+
+  ipsec_tunnel1:
+    type: cloudify.Fortinet.FortiGate.Config
+    interfaces:
+      cloudify.interfaces.lifecycle:
+        create:
+          inputs:
+            config_name: system interface
+            config_id: { get_attribute: [ example_aws_vpn_configuration, ipsec_tunnel, '0', id ] }
+            config:
+              - vdom: root
+              - type: tunnel
+              - ip:
+                - { get_attribute: [ example_aws_vpn_configuration, ipsec_tunnel, '0', 'cgw_internal_ip' ] }
+                - '255.255.255.255'
+              - allowaccess: ping
+              - interface: port1
+              - remote-ip: { get_attribute: [ example_aws_vpn_configuration, ipsec_tunnel, '0', 'vgw_internal_ip' ] }
+            ssh_config:  { get_input: fortigate_ssh_config }
+    relationships:
+      - type: cloudify.relationships.contained_in
+        target: example_openstack_virtual_machine
+      - type: cloudify.relationships.depends_on
+        target: tunnel1_phase_2_interface

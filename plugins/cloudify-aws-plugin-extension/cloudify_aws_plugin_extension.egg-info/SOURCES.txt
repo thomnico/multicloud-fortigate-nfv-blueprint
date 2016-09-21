@@ -1,0 +1,7 @@
+cloudify_aws_plugin_extension.egg-info/PKG-INFO
+cloudify_aws_plugin_extension.egg-info/SOURCES.txt
+cloudify_aws_plugin_extension.egg-info/dependency_links.txt
+cloudify_aws_plugin_extension.egg-info/requires.txt
+cloudify_aws_plugin_extension.egg-info/top_level.txt
+cloudify_aws_vpc_extension/__init__.py
+cloudify_aws_vpc_extension/vpc_connection.py

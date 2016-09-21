@@ -1,0 +1,5 @@
+tosca_definitions_version: cloudify_dsl_1_3
+
+imports:
+  - external-interface.yaml
+  - interface-port-2.yaml

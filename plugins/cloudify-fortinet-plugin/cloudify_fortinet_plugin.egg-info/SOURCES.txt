@@ -1,0 +1,12 @@
+cloudify_fortinet_plugin.egg-info/PKG-INFO
+cloudify_fortinet_plugin.egg-info/SOURCES.txt
+cloudify_fortinet_plugin.egg-info/dependency_links.txt
+cloudify_fortinet_plugin.egg-info/not-zip-safe
+cloudify_fortinet_plugin.egg-info/requires.txt
+cloudify_fortinet_plugin.egg-info/top_level.txt
+fortigate/__init__.py
+fortigate/config.py
+fortigate/generic.py
+fortigate/firewall/__init__.py
+fortigate/firewall/policy.py
+fortigate/firewall/vip.py
