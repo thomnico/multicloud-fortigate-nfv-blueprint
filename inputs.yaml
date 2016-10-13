@@ -1,0 +1,21 @@
+# # Openstack Inputs
+keystone_password: ''
+keystone_tenant_name: ''
+keystone_url: ''
+keystone_username: ''
+region: ''
+
+# Fortigate VM
+example_openstack_virtual_machine_image_id: ''
+example_openstack_virtual_machine_flavor_id: ''
+
+example_openstack_network_port_address_pairs: [ip_address: 0.0.0.0/0]
+example_openstack_private_network_port_address_pairs: [ip_address: 0.0.0.0/0]
+example_openstack_private_network_subnet_enable_dhcp: true
+
+# # AWS INPUTS
+aws_secret_access_key: ''
+aws_access_key_id: ''
+
+# Cloudify AMI (here using us-east-1)
+example_aws_virtual_machine_image_id: ami-165bdf01
