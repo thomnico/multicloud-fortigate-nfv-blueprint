@@ -134,6 +134,15 @@ inputs:
   example_aws_virtual_machine_instance_type:
     default: m3.large
 
+  use_existing_example_openstack_private_network_router_port:
+    default: false
+
+  example_openstack_private_network_router_port:
+    default: 'openstack-example-private-network-router-port'
+
+  example_openstack_private_network_router_fixed_ip:
+    default: 192.168.121.253
+
 node_types:
 
   aws_node_type:
@@ -143,6 +152,38 @@ node_types:
         default: {}
 
 node_templates:
+
+  example_openstack_private_network_router_port:
+    type: cloudify.openstack.nodes.Port
+    properties:
+      openstack_config: { get_input: openstack_configuration }
+      use_external_resource: { get_input: use_existing_example_openstack_private_network_router_port }
+      resource_id: { get_input: example_openstack_private_network_router_port }
+      fixed_ip: { get_input: example_openstack_private_network_router_fixed_ip }
+    relationships:
+      - type: cloudify.relationships.contained_in
+        target: example_openstack_private_network
+      - target: example_openstack_network_router
+        type: cloudify.relationships.depends_on
+        source_interfaces:
+          cloudify.interfaces.relationship_lifecycle:
+            establish:
+              implementation: os_ext.neutron_plugin_extension.router.add_interface_router
+              inputs:
+                args:
+                  router_id: { get_attribute: [ example_openstack_network_router, external_id ] }
+                  port_id: { get_attribute: [ SOURCE, external_id ] }
+      - type: cloudify.relationships.depends_on
+        target: example_openstack_private_network_subnet
+        source_interfaces:
+          cloudify.interfaces.relationship_lifecycle:
+            establish:
+              implementation: os_ext.neutron_plugin_extension.subnet.update
+              inputs:
+                args:
+                  host_routes:
+                    - destination: 169.254.169.254/32
+                      nexthop: { get_property: [ SOURCE, fixed_ip ] }
 
   # Modified
   example_aws_public_route_table:
@@ -265,21 +306,6 @@ node_templates:
         type: cloudify.openstack.server_connected_to_port
       - target: example_openstack_private_network_port
         type: cloudify.openstack.server_connected_to_port
-#      - type: cloudify.relationships.depends_on
-#        target: example_openstack_network_subnet
-#        source_interfaces:
-#          cloudify.interfaces.relationship_lifecycle:
-#            establish:
-#              implementation: os_ext.neutron_plugin_extension.subnet.update
-#              inputs:
-#                args:
-#                  host_routes:
-#                    - destination: { get_input: example_aws_public_subnet_cidr }
-#                      nexthop: { get_attribute: [ SOURCE, networks, { get_input: example_openstack_network_name }, 0 ] }
-#                    - destination: { get_input: example_aws_private_subnet_cidr }
-#                      nexthop: { get_attribute: [ SOURCE, networks, { get_input: example_openstack_network_name }, 0 ] }
-#                    - destination: { concat: [ { get_input: example_openstack_private_network_subnet_cidr }, '/', { get_input: example_openstack_private_network_subnet_cidr_suffix } ] }
-#                      nexthop: { get_attribute: [ SOURCE, networks, { get_input: example_openstack_network_name }, 0 ] }
 
   example_aws_virtual_machine:
     type: cloudify.aws.nodes.Instance
