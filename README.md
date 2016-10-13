@@ -1,4 +1,6 @@
-# Multicloud NVF Example
+# multicloud-fortigate-nfv-blueprint
+
+* This blueprint relies heavily on the [aws-azure-openstack-blueprint](https://github.com/cloudify-examples/aws-azure-openstack-blueprint).
 
 ## Requirements
 
