@@ -1,3 +1,5 @@
+[![Build Status](https://circleci.com/gh/cloudify-examples/multicloud-fortigate-nfv-blueprint.svg?style=shield&circle-token=:circle-token)](https://circleci.com/gh/cloudify-examples/multicloud-fortigate-nfv-blueprint)
+
 # multicloud-fortigate-nfv-blueprint
 
 * This blueprint relies heavily on the [aws-azure-openstack-blueprint](https://github.com/cloudify-examples/aws-azure-openstack-blueprint).

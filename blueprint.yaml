@@ -5,7 +5,7 @@ imports:
   - http://www.getcloudify.org/spec/cloudify/3.4/types.yaml
 
   # Openstack
-  - https://raw.githubusercontent.com/cloudify-examples/aws-azure-openstack-blueprint/master/openstack/imports.yaml
+  - https://raw.githubusercontent.com/cloudify-examples/aws-azure-openstack-blueprint/master/openstack/openstack-imports.yaml
   - https://raw.githubusercontent.com/cloudify-examples/aws-azure-openstack-blueprint/master/openstack/network/external-network.yaml
   - https://raw.githubusercontent.com/cloudify-examples/aws-azure-openstack-blueprint/master/openstack/network/open-group.yaml
   - https://raw.githubusercontent.com/cloudify-examples/aws-azure-openstack-blueprint/master/openstack/network/public-network/router.yaml
@@ -19,7 +19,7 @@ imports:
   - https://raw.githubusercontent.com/cloudify-examples/aws-azure-openstack-blueprint/master/openstack/compute/key.yaml
 
   # AWS
-  - https://raw.githubusercontent.com/cloudify-examples/aws-azure-openstack-blueprint/master/aws/imports.yaml
+  - https://raw.githubusercontent.com/cloudify-examples/aws-azure-openstack-blueprint/master/aws/aws-imports.yaml
   - https://raw.githubusercontent.com/cloudify-examples/aws-azure-openstack-blueprint/master/aws/network/vpc.yaml
   - https://raw.githubusercontent.com/cloudify-examples/aws-azure-openstack-blueprint/master/aws/network/dhcp-options-set.yaml
   - https://raw.githubusercontent.com/cloudify-examples/aws-azure-openstack-blueprint/master/aws/network/public-subnet/subnet.yaml
