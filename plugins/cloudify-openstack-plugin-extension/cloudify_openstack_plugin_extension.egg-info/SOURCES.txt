@@ -1,7 +1,0 @@
-cloudify_openstack_plugin_extension.egg-info/PKG-INFO
-cloudify_openstack_plugin_extension.egg-info/SOURCES.txt
-cloudify_openstack_plugin_extension.egg-info/dependency_links.txt
-cloudify_openstack_plugin_extension.egg-info/requires.txt
-cloudify_openstack_plugin_extension.egg-info/top_level.txt
-neutron_plugin_extension/__init__.py
-neutron_plugin_extension/subnet.py

@@ -143,6 +143,12 @@ inputs:
   example_openstack_private_network_router_fixed_ip:
     default: 192.168.121.253
 
+  example_openstack_virtual_machine_files:
+    default: {}
+
+  example_openstack_virtual_machine_user_data:
+    default: ''
+
 node_types:
 
   aws_node_type:
@@ -184,6 +190,30 @@ node_templates:
                   host_routes:
                     - destination: 169.254.169.254/32
                       nexthop: { get_property: [ SOURCE, fixed_ip ] }
+                    - destination: { get_property: [ example_openstack_private_network_subnet, subnet, cidr ] }
+                      nexthop: { get_property: [ example_openstack_private_network_port, fixed_ip ] }
+                    - destination: { get_property: [ example_aws_vpc, cidr_block ] }
+                      nexthop: { get_property: [ example_openstack_private_network_port, fixed_ip ] }
+
+  additional_public_subnet_configuration:
+    type: cloudify.nodes.Root
+    relationships:
+      - type: cloudify.relationships.depends_on
+        target: example_openstack_virtual_machine
+      - type: cloudify.relationships.depends_on
+        target: example_openstack_network_subnet
+        source_interfaces:
+          cloudify.interfaces.relationship_lifecycle:
+            establish:
+              implementation: os_ext.neutron_plugin_extension.subnet.update
+              inputs:
+                args:
+                  host_routes:
+                    - destination: { get_property: [ example_openstack_private_network_subnet, subnet, cidr ] }
+                      nexthop: { get_property: [ example_openstack_network_port, fixed_ip ] }
+                    - destination: { get_property: [ example_aws_vpc, cidr_block ] }
+                      nexthop: { get_property: [ example_openstack_network_port, fixed_ip ] }
+
 
   # Modified
   example_aws_public_route_table:
@@ -298,6 +328,8 @@ node_templates:
       server:
         image: { get_input: example_openstack_virtual_machine_image_id }
         flavor: { get_input: example_openstack_virtual_machine_flavor_id }
+        files: { get_input: example_openstack_virtual_machine_files }
+        userdata: { get_input: example_openstack_virtual_machine_user_data }
       management_network_name: { get_property: [ example_openstack_network, resource_id ] }
     relationships:
       - target: example_openstack_key
@@ -306,6 +338,8 @@ node_templates:
         type: cloudify.openstack.server_connected_to_port
       - target: example_openstack_private_network_port
         type: cloudify.openstack.server_connected_to_port
+      - type: cloudify.relationships.depends_on
+        target: example_aws_vpc
 
   example_aws_virtual_machine:
     type: cloudify.aws.nodes.Instance
