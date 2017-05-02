@@ -5,7 +5,7 @@ imports:
   - http://www.getcloudify.org/spec/cloudify/3.4/types.yaml
 
   # Openstack
-  - https://raw.githubusercontent.com/cloudify-examples/aws-azure-openstack-blueprint/master/openstack/imports.yaml
+  - https://raw.githubusercontent.com/cloudify-examples/aws-azure-openstack-blueprint/master/openstack/openstack-imports.yaml
   - https://raw.githubusercontent.com/cloudify-examples/aws-azure-openstack-blueprint/master/openstack/network/external-network.yaml
   - https://raw.githubusercontent.com/cloudify-examples/aws-azure-openstack-blueprint/master/openstack/network/open-group.yaml
   - https://raw.githubusercontent.com/cloudify-examples/aws-azure-openstack-blueprint/master/openstack/network/public-network/router.yaml
@@ -14,12 +14,10 @@ imports:
   - https://raw.githubusercontent.com/cloudify-examples/aws-azure-openstack-blueprint/master/openstack/network/public-network/subnet.yaml
   - https://raw.githubusercontent.com/cloudify-examples/aws-azure-openstack-blueprint/master/openstack/network/public-network/port.yaml
   - https://raw.githubusercontent.com/cloudify-examples/aws-azure-openstack-blueprint/master/openstack/network/private-network/network.yaml
-  - https://raw.githubusercontent.com/cloudify-examples/aws-azure-openstack-blueprint/master/openstack/network/private-network/subnet.yaml
-  - https://raw.githubusercontent.com/cloudify-examples/aws-azure-openstack-blueprint/master/openstack/network/private-network/port.yaml
   - https://raw.githubusercontent.com/cloudify-examples/aws-azure-openstack-blueprint/master/openstack/compute/key.yaml
 
   # AWS
-  - https://raw.githubusercontent.com/cloudify-examples/aws-azure-openstack-blueprint/master/aws/imports.yaml
+  - https://raw.githubusercontent.com/cloudify-examples/aws-azure-openstack-blueprint/master/aws/aws-imports.yaml
   - https://raw.githubusercontent.com/cloudify-examples/aws-azure-openstack-blueprint/master/aws/network/vpc.yaml
   - https://raw.githubusercontent.com/cloudify-examples/aws-azure-openstack-blueprint/master/aws/network/dhcp-options-set.yaml
   - https://raw.githubusercontent.com/cloudify-examples/aws-azure-openstack-blueprint/master/aws/network/public-subnet/subnet.yaml
@@ -49,6 +47,63 @@ plugins:
     install_arguments: '--process-dependency-links'
 
 inputs:
+
+  use_existing_example_openstack_private_network_subnet:
+    type: boolean
+    default: false
+
+  example_openstack_private_network_subnet:
+    type: string
+    default: 'example-openstack-private-network-subnet'
+
+  example_openstack_private_network_subnet_ipversion:
+    default: 4
+
+  example_openstack_private_network_subnet_cidr:
+    type: string
+    default: 192.168.121.0
+
+  example_openstack_private_network_subnet_cidr_suffix:
+    type: string
+    default: 24
+
+  example_openstack_private_network_subnet_cidr_netmask:
+    type: string
+    default: 255.255.255.0
+
+  example_openstack_private_network_subnet_enable_dhcp:
+    type: string
+    default: false
+
+  example_openstack_private_network_subnet_gateway_ip:
+    type: string
+    default: 192.168.121.254
+
+  example_openstack_private_network_subnet_dnsservers:
+    default: [8.8.4.4, 8.8.8.8]
+
+  example_openstack_private_network_subnet_host_routes:
+    default: []
+
+  example_openstack_private_network_subnet_allocation_pools:
+    default:
+      - start: 192.168.121.50
+        end: 192.168.121.250
+
+  use_existing_example_openstack_private_port:
+    type: boolean
+    default: false
+
+  example_openstack_private_network_port_name:
+    type: string
+    default: 'example-openstack-private-network-port'
+
+  example_openstack_private_test_port_fixed_ip:
+    type: string
+    default: { get_input: example_openstack_private_network_subnet_gateway_ip }
+
+  example_openstack_private_network_port_address_pairs:
+    default: []
 
   use_existing_example_aws_public_route_table:
     description: >
@@ -134,6 +189,24 @@ inputs:
   example_aws_virtual_machine_instance_type:
     default: m3.large
 
+  use_existing_example_openstack_private_network_router_port:
+    default: false
+
+  example_openstack_private_network_router_port:
+    default: 'openstack-example-private-network-router-port'
+
+  example_openstack_private_network_router_fixed_ip:
+    default: 192.168.121.253
+
+  example_openstack_virtual_machine_files:
+    default: {}
+
+  example_openstack_virtual_machine_user_data:
+    default: ''
+
+  example_aws_virtual_machine_name:
+    default: ''
+
 node_types:
 
   aws_node_type:
@@ -143,6 +216,102 @@ node_types:
         default: {}
 
 node_templates:
+
+  example_openstack_private_network_subnet:
+    type: cloudify.openstack.nodes.Subnet
+    properties:
+      openstack_config: { get_input: openstack_configuration }
+      use_external_resource: { get_input: use_existing_example_openstack_private_network_subnet }
+      resource_id: { get_input: example_openstack_private_network_subnet }
+      subnet:
+        ip_version: { get_input: example_openstack_private_network_subnet_ipversion }
+        cidr: { concat: [ { get_input: example_openstack_private_network_subnet_cidr }, '/', { get_input: example_openstack_private_network_subnet_cidr_suffix } ] }
+        enable_dhcp: { get_input: example_openstack_private_network_subnet_enable_dhcp }
+        gateway_ip: { get_input: example_openstack_private_network_subnet_gateway_ip }
+        dns_nameservers: { get_input: example_openstack_private_network_subnet_dnsservers }
+        host_routes: { get_input: example_openstack_private_network_subnet_host_routes }
+        allocation_pools: { get_input: example_openstack_private_network_subnet_allocation_pools }
+    relationships:
+      - target: example_openstack_private_network
+        type: cloudify.relationships.contained_in
+
+  example_openstack_private_network_port:
+    type: cloudify.openstack.nodes.Port
+    properties:
+      openstack_config: { get_input: openstack_configuration }
+      use_external_resource: { get_input: use_existing_example_openstack_private_port }
+      resource_id: { get_input: example_openstack_private_network_port_name }
+      fixed_ip: { get_input: example_openstack_private_test_port_fixed_ip }
+    relationships:
+      - type: cloudify.relationships.contained_in
+        target: example_openstack_private_network
+      - type: cloudify.relationships.depends_on
+        target: example_openstack_private_network_subnet
+      - type: cloudify.openstack.port_connected_to_security_group
+        target: example_openstack_group
+    interfaces:
+      cloudify.interfaces.lifecycle:
+        create:
+          implementation: openstack.neutron_plugin.port.create
+          inputs:
+            args:
+              allowed_address_pairs: { get_input: example_openstack_private_network_port_address_pairs }
+
+  example_openstack_private_network_router_port:
+    type: cloudify.openstack.nodes.Port
+    properties:
+      openstack_config: { get_input: openstack_configuration }
+      use_external_resource: { get_input: use_existing_example_openstack_private_network_router_port }
+      resource_id: { get_input: example_openstack_private_network_router_port }
+      fixed_ip: { get_input: example_openstack_private_network_router_fixed_ip }
+    relationships:
+      - type: cloudify.relationships.contained_in
+        target: example_openstack_private_network
+      - target: example_openstack_network_router
+        type: cloudify.relationships.depends_on
+        source_interfaces:
+          cloudify.interfaces.relationship_lifecycle:
+            establish:
+              implementation: os_ext.neutron_plugin_extension.router.add_interface_router
+              inputs:
+                args:
+                  router_id: { get_attribute: [ example_openstack_network_router, external_id ] }
+                  port_id: { get_attribute: [ SOURCE, external_id ] }
+      - type: cloudify.relationships.depends_on
+        target: example_openstack_private_network_subnet
+        source_interfaces:
+          cloudify.interfaces.relationship_lifecycle:
+            establish:
+              implementation: os_ext.neutron_plugin_extension.subnet.update
+              inputs:
+                args:
+                  host_routes:
+                    - destination: 169.254.169.254/32
+                      nexthop: { get_property: [ SOURCE, fixed_ip ] }
+                    - destination: { get_property: [ example_openstack_private_network_subnet, subnet, cidr ] }
+                      nexthop: { get_property: [ example_openstack_private_network_port, fixed_ip ] }
+                    - destination: { get_property: [ example_aws_vpc, cidr_block ] }
+                      nexthop: { get_property: [ example_openstack_private_network_port, fixed_ip ] }
+
+  additional_public_subnet_configuration:
+    type: cloudify.nodes.Root
+    relationships:
+      - type: cloudify.relationships.depends_on
+        target: example_openstack_virtual_machine
+      - type: cloudify.relationships.depends_on
+        target: example_openstack_network_subnet
+        source_interfaces:
+          cloudify.interfaces.relationship_lifecycle:
+            establish:
+              implementation: os_ext.neutron_plugin_extension.subnet.update
+              inputs:
+                args:
+                  host_routes:
+                    - destination: { get_property: [ example_openstack_private_network_subnet, subnet, cidr ] }
+                      nexthop: { get_property: [ example_openstack_network_port, fixed_ip ] }
+                    - destination: { get_property: [ example_aws_vpc, cidr_block ] }
+                      nexthop: { get_property: [ example_openstack_network_port, fixed_ip ] }
+
 
   # Modified
   example_aws_public_route_table:
@@ -257,6 +426,8 @@ node_templates:
       server:
         image: { get_input: example_openstack_virtual_machine_image_id }
         flavor: { get_input: example_openstack_virtual_machine_flavor_id }
+        files: { get_input: example_openstack_virtual_machine_files }
+        userdata: { get_input: example_openstack_virtual_machine_user_data }
       management_network_name: { get_property: [ example_openstack_network, resource_id ] }
     relationships:
       - target: example_openstack_key
@@ -265,21 +436,8 @@ node_templates:
         type: cloudify.openstack.server_connected_to_port
       - target: example_openstack_private_network_port
         type: cloudify.openstack.server_connected_to_port
-#      - type: cloudify.relationships.depends_on
-#        target: example_openstack_network_subnet
-#        source_interfaces:
-#          cloudify.interfaces.relationship_lifecycle:
-#            establish:
-#              implementation: os_ext.neutron_plugin_extension.subnet.update
-#              inputs:
-#                args:
-#                  host_routes:
-#                    - destination: { get_input: example_aws_public_subnet_cidr }
-#                      nexthop: { get_attribute: [ SOURCE, networks, { get_input: example_openstack_network_name }, 0 ] }
-#                    - destination: { get_input: example_aws_private_subnet_cidr }
-#                      nexthop: { get_attribute: [ SOURCE, networks, { get_input: example_openstack_network_name }, 0 ] }
-#                    - destination: { concat: [ { get_input: example_openstack_private_network_subnet_cidr }, '/', { get_input: example_openstack_private_network_subnet_cidr_suffix } ] }
-#                      nexthop: { get_attribute: [ SOURCE, networks, { get_input: example_openstack_network_name }, 0 ] }
+      - type: cloudify.relationships.depends_on
+        target: example_aws_vpc
 
   example_aws_virtual_machine:
     type: cloudify.aws.nodes.Instance
@@ -287,6 +445,7 @@ node_templates:
       aws_config: { get_input: aws_configuration }
       use_external_resource: { get_input: use_existing_example_aws_virtual_machine }
       resource_id: { get_input: example_aws_virtual_machine }
+      name: { get_input: example_aws_virtual_machine_name }
       agent_config:
         install_method: none
       image_id: { get_input: example_aws_virtual_machine_image_id }
@@ -310,7 +469,6 @@ node_templates:
             new_attributes:
               sourceDestCheck: false
 
-
   example_aws_vpn_configuration:
     type: aws_node_type
     properties:
@@ -324,3 +482,9 @@ node_templates:
           cloudify.interfaces.relationship_lifecycle:
             establish:
               implementation: aws_ext.cloudify_aws_vpc_extension.vpc_connection.establish
+
+outputs:
+  example_openstack_private_network_subnet:
+    description: Openstack Public Subnet
+    value:
+      example_openstack_private_network_subnet: { get_attribute: [ example_openstack_private_network_subnet, external_id ] }

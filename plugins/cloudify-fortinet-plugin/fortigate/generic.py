@@ -103,6 +103,7 @@ def execute_commands_filter_for_result(commands, filter_command, matcher, ssh_co
     '''Generic config create operation'''
     # Create the configuration
 
+    success = False
     iface = Generic(ssh_config)
 
     for command in commands:
